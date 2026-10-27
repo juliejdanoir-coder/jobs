@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jobs Tic-Tac-Toe</title>
+    <style>
+        :root {
+            --ink: #17324d;
+            --green: #62df83;
+            --yellow: #ffd84d;
+        }
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            min-height: 100%;
+            font-family: "Trebuchet MS", "Arial Rounded MT Bold", Arial, sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 9% 10%, #fff0a8 0 7%, transparent 7.5%),
+                radial-gradient(circle at 91% 14%, #ffd5ea 0 7%, transparent 7.5%),
+                linear-gradient(#e4f8ff, #fff8dd);
+        }
+        body { display: flex; justify-content: center; padding: 12px; }
+        .game {
+            width: min(100%, 980px);
+            background: #fff;
+            border: 4px solid var(--ink);
+            border-radius: 28px;
+            box-shadow: 0 12px 0 rgba(23, 50, 77, .14);
+            padding: 16px;
+        }
+        .top {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        h1 {
+            margin: 0;
+            color: #ff5a2a;
+            font-size: clamp(28px, 5.2vw, 52px);
+            line-height: .95;
+        }
+        .subtitle {
+            margin: 6px 0 0;
+            font-weight: 900;
+            font-size: clamp(12px, 2vw, 17px);
+        }
+        .turn {
+            border: 4px solid var(--ink);
+            border-radius: 18px;
+            padding: 8px 14px;
+            min-width: 140px;
+            text-align: center;
+            font-weight: 900;
+            background: #fff;
+        }
+        .turn small { display: block; }
+        .turn span { display: block; font-size: 34px; }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            padding: 14px;
+            border-radius: 26px;
+            background: linear-gradient(135deg, #fff3a8, #ffd8ea 35%, #d9f7ff 70%, #d8ffd6);
+            border: 4px solid #17324d;
+        }
+        .cell {
+            position: relative;
+            background: white;
+            border: 4px solid var(--ink);
+            border-radius: 22px;
+            cursor: pointer;
+            box-shadow: 0 7px 0 rgba(23, 50, 77, .16);
+            aspect-ratio: 1 / 1; /* Идеально квадратные ячейки */
+            overflow: hidden;
+        }
+        
+        /* Картинка внутри ячейки */
+        .cell img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Картинка заполняет всю ячейку без искажений */
+        }
+
+        /* Слой для крестика или нолика */
+        .cell .mark {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(60px, 10vw, 120px);
+            font-weight: 900;
+            line-height: 1;
+            opacity: 0; /* Изначально невидим */
+            transition: opacity 0.2s;
+            background: rgba(255, 255, 255, 0.4); /* Легкое затемнение фона под значком */
+            text-shadow: 3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff; /* Белая обводка для читаемости */
+        }
+
+        /* Цвета для игроков */
+        .cell.player1 .mark {
+            opacity: 1;
+            color: #ff2a2a; /* Красный X */
+        }
+        .cell.player2 .mark {
+            opacity: 1;
+            color: #2a7bff; /* Синий O */
+        }
+
+        .cell.win {
+            outline: 8px solid var(--yellow);
+            outline-offset: -8px;
+        }
+
+        .bottom {
+            margin-top: 14px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        button {
+            border: 4px solid var(--ink);
+            border-radius: 18px;
+            padding: 8px 18px;
+            background: linear-gradient(180deg, #7ef095, #53d975);
+            box-shadow: 0 5px 0 var(--ink);
+            font: 900 16px inherit;
+            cursor: pointer;
+        }
+        .modal {
+            position: fixed; inset: 0;
+            display: none; align-items: center; justify-content: center;
+            background: rgba(23, 50, 77, .42);
+            padding: 18px;
+            z-index: 10;
+        }
+        .modal.show { display: flex; }
+        .box {
+            width: min(92vw, 480px);
+            background: #fff;
+            border: 5px solid var(--ink);
+            border-radius: 26px;
+            padding: 25px;
+            text-align: center;
+        }
+        .box .emoji { font-size: 72px; }
+        .box h2 { margin: 4px; font-size: 52px; color: #ff5a2a; }
+        .box .result { font-size: 30px; font-weight: 900; margin: 12px; }
+        
+        @media (max-width: 650px) {
+            body { padding: 0; }
+            .game { min-height: 100vh; border-radius: 0; border-left: 0; border-right: 0; padding: 8px; }
+            .top { gap: 6px; }
+            h1 { font-size: 32px; }
+            .subtitle { font-size: 12px; }
+            .turn { min-width: 95px; padding: 5px; }
+            .turn span { font-size: 26px; }
+            .board { gap: 6px; padding: 8px; border-radius: 18px; }
+            .cell { border-width: 3px; border-radius: 14px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game">
+        <div class="top">
+            <div>
+                <h1>JOBS TIC-TAC-TOE</h1>
+                <div class="subtitle">She is a ... He is a ...</div>
+            </div>
+            <div class="turn"><small>ХОДИТ</small><span id="turnIndicator">❌</span></div>
+        </div>
+
+        <div id="board" class="board"></div>
+
+        <div class="bottom">
+            <button onclick="resetGame()">A NEW GAME</button>
+        </div>
+    </div>
+
+    <div id="winModal" class="modal">
+        <div class="box">
+            <div class="emoji">🎉</div>
+            <h2>WINNER!</h2>
+            <div id="winnerMessage" class="result"></div>
+            <button onclick="resetGame()">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        // --- НАСТРОЙКИ ИЗОБРАЖЕНИЙ ---
+        // Список картинок для 9 ячеек. 
+        // ВАЖНО: если в названии файла остались пробелы, замените _ на пробел (например, 'images/to drive.jpg')
+        const jobImages = [
+            'images/fireman.jpg',
+            'images/friend.jpg',
+            'images/milkman.jpg',
+            'images/policeman.jpg',
+            'images/postman.jpg',
+            'images/to_drive.jpg',
+            'images/to_ride_a_bike.jpg',
+            'images/to_run.jpg',
+            'images/to_walk.jpg'
+        ];
+
+        // --- ЛОГИКА ИГРЫ ---
+        const boardElement = document.getElementById('board');
+        const turnIndicator = document.getElementById('turnIndicator');
+        const winModal = document.getElementById('winModal');
+        const winnerMessage = document.getElementById('winnerMessage');
+
+        let boardState = Array(9).fill(null);
+        let currentPlayer = 'player1'; // 'player1' (X) или 'player2' (O)
+        let gameActive = true;
+
+        const winPatterns = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        function createBoard() {
+            boardElement.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.index = i;
+                
+                // Добавляем картинку в ячейку
+                const img = document.createElement('img');
+                img.src = jobImages[i];
+                img.alt = 'Job';
+                cell.appendChild(img);
+
+                // Добавляем пустой слой для крестика или нолика
+                const mark = document.createElement('div');
+                mark.classList.add('mark');
+                cell.appendChild(mark);
+
+                cell.addEventListener('click', handleCellClick);
+                boardElement.appendChild(cell);
+            }
+            updateTurnIndicator();
+        }
+
+        function updateTurnIndicator() {
+            turnIndicator.textContent = currentPlayer === 'player1' ? '❌' : '⭕';
+        }
+
+        function handleCellClick(event) {
+            const cell = event.currentTarget;
+            const index = parseInt(cell.dataset.index);
+
+            // Если игра окончена или ячейка уже занята — ничего не делаем
+            if (!gameActive || boardState[index] !== null) return;
+
+            // Записываем ход
+            boardState[index] = currentPlayer;
+            
+            // Визуально показываем крестик или нолик
+            const markElement = cell.querySelector('.mark');
+            markElement.textContent = currentPlayer === 'player1' ? 'X' : 'O';
+            cell.classList.add(currentPlayer); // Добавляем класс player1 или player2 для цвета
+
+            // Проверяем победу
+            if (checkWin(currentPlayer)) {
+                endGame(currentPlayer);
+                return;
+            }
+            if (boardState.every(cell => cell !== null)) {
+                endGame('draw');
+                return;
+            }
+
+            // Передаем ход
+            currentPlayer = currentPlayer === 'player1' ? 'player2' : 'player1';
+            updateTurnIndicator();
+        }
+
+        function checkWin(player) {
+            return winPatterns.some(pattern => {
+                return pattern.every(index => boardState[index] === player);
+            });
+        }
+
+        function endGame(result) {
+            gameActive = false;
+            if (result === 'draw') {
+                winnerMessage.textContent = 'НИЧЬЯ!';
+            } else {
+                const winnerName = result === 'player1' ? 'Игрок 1 (X)' : 'Игрок 2 (O)';
+                winnerMessage.textContent = `Победил ${winnerName}!`;
+                highlightWinningCells(result);
+            }
+            setTimeout(() => winModal.classList.add('show'), 500); // Небольшая задержка для красоты
+        }
+
+        function highlightWinningCells(player) {
+            winPatterns.forEach(pattern => {
+                if (pattern.every(index => boardState[index] === player)) {
+                    pattern.forEach(index => {
+                        boardElement.children[index].classList.add('win');
+                    });
+                }
+            });
+        }
+
+        function resetGame() {
+            boardState = Array(9).fill(null);
+            currentPlayer = 'player1';
+            gameActive = true;
+            winModal.classList.remove('show');
+            createBoard();
+        }
+
+        // Инициализация
+        createBoard();
+    </script>
+</body>
+</html>
